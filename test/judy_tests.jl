@@ -63,6 +63,12 @@ function test_juSL()
     end
     @test C_NULL == (ju_prev(ja))[2]
 
+    i = 1
+    for x in ja
+        @test ((indices[i])[2] == x[1]) && ((indices[i])[1] == x[2])
+        i+=1
+    end
+
     @test (indices[1])[2] == ja[(indices[1])[1]]
     ja[(indices[1])[1]] = 2 * (indices[1])[2]
     @test (2 * ((indices[1])[2])) == ja[(indices[1])[1]]
@@ -112,6 +118,12 @@ function test_juL()
         @test ((indices[rev_idx])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[rev_idx])[1] == ret_tuple[3])
     end
     @test C_NULL == (ju_prev(ja))[2]
+
+    i = 1
+    for x in ja
+        @test ((indices[i])[2] == x[1]) && ((indices[i])[1] == x[2])
+        i+=1
+    end
 
     for i in 1:20
         ret_tuple = (i == 1) ? ju_first_empty(ja) : ju_next_empty(ja)
@@ -163,6 +175,12 @@ function test_ju1()
         @test (1 == ret[1]) && (indices[length(indices)-i+1] == ret[2])
     end
     @test 0 == (ju_prev(ja))[1]
+
+    i = 1
+    for x in ja
+        @test (indices[i] == x[2])
+        i+=1
+    end
 
     for i in 1:20
         ret = (i == 1) ? ju_first_empty(ja) : ju_next_empty(ja)

@@ -1,6 +1,6 @@
 [Judy arrays](http://en.wikipedia.org/wiki/Judy_array) are fast associative arrays with low memory usage.
 
-This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http://judy.sourceforge.net/), but also provides a array like syntax for ease of use.
+This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http://judy.sourceforge.net/), but also provides array like syntax for ease of use.
 
 Example (simple):
 -----------------
@@ -32,6 +32,26 @@ Example (simple):
 
     julia> println(ja["One More"] / ja["First"])
     2.0
+
+    julia> ja = JudySL()
+    JudySL (empty)
+
+    julia> ja["One"] = 1
+    1
+
+    julia> ja["Two"] = 2
+    2
+
+    julia> ja["Hundred"] = 100
+    100
+
+    julia> for x in ja
+             println(x)
+           end
+    (0x0000000000000064,"Hundred")
+    (0x0000000000000001,"One")
+    (0x0000000000000002,"Two")
+
 
 Other APIs:
 -----------
