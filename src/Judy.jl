@@ -2,6 +2,7 @@ module Judy
 
 import Base.getindex
 import Base.setindex!
+import Base.show
 
 const _judylib = "libJudy"
 const MAX_STR_IDX_LEN = (1024*10)
@@ -13,9 +14,9 @@ export ju_count, ju_by_count
 export ju_first, ju_next, ju_last, ju_prev
 export ju_first_empty, ju_next_empty, ju_last_empty, ju_prev_empty
 
-# ############################################
-# TYPES BEGIN
-# ############################################
+##
+## TYPES BEGIN
+##
 type JudyArrayBase
     jarr::Ptr{Void}
     pjarr::Array{Ptr{Void}}
@@ -60,13 +61,18 @@ type JudyHS
     end
 end
 
-# ############################################
-# TYPES END
-# ############################################
+##
+## TYPES END
+##
 
-# ############################################
-# INDEXABLE COLLECTIONS BEGIN
-# ############################################
+show(io::IO, j::Judy1) = println(io, (j.b.jarr == C_NULL) ? "$(typeof(j)) (empty)" : "$(typeof(j)) (count: $(dec(ju_count(j))))")
+show(io::IO, j::JudyL) = println(io, (j.b.jarr == C_NULL) ? "$(typeof(j)) (empty)" : "$(typeof(j)) (count: $(dec(ju_count(j))))")
+show(io::IO, j::JudySL) = println(io, (j.b.jarr == C_NULL) ? "$(typeof(j)) (empty)" : "$(typeof(j)) (populated)")
+show(io::IO, j::JudyHS) = println(io, (j.b.jarr == C_NULL) ? "$(typeof(j)) (empty)" : "$(typeof(j)) (populated)")
+
+##
+## INDEXABLE COLLECTIONS BEGIN
+##
 getindex(arr::Judy1, idx::Integer) = (ju_get(arr, idx) == 1)
 setindex!(arr::Judy1, isset::Bool, idx::Integer) = isset ? ju_set(arr, idx) : ju_unset(arr, idx)
 
@@ -109,13 +115,13 @@ function setindex!(arr::JudyHS, val::Any, idx::Array{Uint8})
     (C_NULL != ju_set(arr, idx, val)) ? val : Nothing
 end
 
-# ############################################
-# INDEXABLE COLLECTIONS END
-# ############################################
+##
+## INDEXABLE COLLECTIONS END
+##
 
-# ############################################
-# DESTRUCTOR BEGIN
-# ############################################
+##
+## DESTRUCTOR BEGIN
+##
 # destructor that frees the judy array completely
 macro _ju_free(arr, fn)
     quote
@@ -129,17 +135,17 @@ ju_free(arr::Judy1) = @_ju_free arr :Judy1FreeArray
 ju_free(arr::JudyL) = @_ju_free arr :JudyLFreeArray
 ju_free(arr::JudySL) = @_ju_free arr :JudySLFreeArray
 ju_free(arr::JudyHS) = @_ju_free arr :JudyHSFreeArray
-# ############################################
-# DESTRUCTOR END
-# ############################################
+##
+## DESTRUCTOR END
+##
 
-# returns bytes of memory used currently by the judy array
+## returns bytes of memory used currently by the judy array
 ju_mem_used(arr::Judy1) = ccall((:Judy1MemUsed, _judylib), Uint, (Ptr{Void},), arr.b.jarr)
 ju_mem_used(arr::JudyL) = ccall((:JudyLMemUsed, _judylib), Uint, (Ptr{Void},), arr.b.jarr)
 
 
-# set bit at the index
-# return 1 if bit was previously unset (successful), otherwise 0 if the bit was already set (unsuccessful).
+## set bit at the index
+## return 1 if bit was previously unset (successful), otherwise 0 if the bit was already set (unsuccessful).
 ju_set(arr::Judy1, idx::Integer) = ju_set(arr, convert(Uint, idx))
 function ju_set(arr::Judy1, idx::Uint)
     ret::Int32 = ccall((:Judy1Set, _judylib), Int32, (Ptr{Ptr{Void}}, Uint, Ptr{Void}), arr.b.pjarr, idx, C_NULL)
@@ -148,9 +154,9 @@ function ju_set(arr::Judy1, idx::Uint)
 end
 
 
-# set value (val) at index (idx)
-# return a pointer to the value. the pointer is valid till the next call to a judy method.
-# return C_NULL on error
+## set value (val) at index (idx)
+## return a pointer to the value. the pointer is valid till the next call to a judy method.
+## return C_NULL on error
 ju_set(arr::JudyL, idx::Integer, val::Integer) = ju_set(arr, convert(Uint, idx), convert(Uint, val))
 function ju_set(arr::JudyL, idx::Uint, val::Uint)
     ret::Ptr{Uint} = ccall((:JudyLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Uint, Ptr{Void}), arr.b.pjarr, idx, C_NULL)
@@ -182,8 +188,8 @@ function ju_set(arr::JudyHS, idx::Array{Uint8}, val::Uint)
 end
 
 
-# unset value at index
-# return 1 if index was previously set (successful), otherwise 0 if the index was already unset (unsuccessful).
+## unset value at index
+## return 1 if index was previously set (successful), otherwise 0 if the index was already unset (unsuccessful).
 macro _ju_unset(arr, idx, itype, fn)
     quote
         local ret::Int32 = ccall(($(fn), _judylib), Int32, (Ptr{Ptr{Void}}, $(itype), Ptr{Void}), $(arr).b.pjarr, $(idx), C_NULL)
@@ -207,17 +213,17 @@ function ju_unset(arr::JudyHS, idx::Array{Uint8})
 end
 
 
-# get the value at index (if set)
-# return 1 if index's bit was set, 0 if it was unset (index was absent).
+## get the value at index (if set)
+## return 1 if index's bit was set, 0 if it was unset (index was absent).
 ju_get(arr::Judy1, idx::Integer) = ju_get(arr, convert(Uint, idx))
 function ju_get(arr::Judy1, idx::Uint)
     ret::Int32 = ccall((:Judy1Test, _judylib), Int32, (Ptr{Void}, Uint, Ptr{Void}), arr.b.jarr, idx, C_NULL)
     return ret
 end
 
-# get the value at index (if set)
-# return a tuple (value, pointer to value) if index's bit was set, (undefined, C_NULL) if it was unset (index was absent).
-# the pointer is valid till the next call to a judy method.
+## get the value at index (if set)
+## return a tuple (value, pointer to value) if index's bit was set, (undefined, C_NULL) if it was unset (index was absent).
+## the pointer is valid till the next call to a judy method.
 function ju_get(arr::JudyHS, idx::Array{Uint8})
     ret::Ptr{Uint} = ccall((:JudyHSGet, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Uint, Ptr{Void}), arr.b.jarr, idx, convert(Uint, length(idx)), C_NULL)
     ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
@@ -236,10 +242,10 @@ ju_get(arr::JudyL, idx::Integer) = ju_get(arr, convert(Uint, idx))
 ju_get(arr::JudyL, idx::Uint) = @_ju_get arr idx Uint :JudyLGet
 ju_get(arr::JudySL, idx::String) = @_ju_get arr bytestring(idx) Ptr{Uint8} :JudySLGet
 
-# count the number of indexes present between idx1 and idx2 (inclusive).
-# returns the count.
-# a return value of 0 can be valid as a count, or it can indicate a special case for fully populated array (32-bit machines only).
-# see Judy documentation for ways to resolve this.
+## count the number of indexes present between idx1 and idx2 (inclusive).
+## returns the count.
+## a return value of 0 can be valid as a count, or it can indicate a special case for fully populated array (32-bit machines only).
+## see Judy documentation for ways to resolve this.
 ju_count(arr::Judy1) = ju_count(arr, 0, -1)
 ju_count(arr::Judy1, idx1::Integer, idx2::Integer) = ju_count(arr, convert(Uint, idx1), convert(Uint, idx2))
 ju_count(arr::Judy1, idx1::Uint, idx2::Uint) = ccall((:Judy1Count, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.b.jarr, idx1, idx2, C_NULL)
@@ -248,9 +254,9 @@ ju_count(arr::JudyL, idx1::Integer, idx2::Integer) = ju_count(arr, convert(Uint,
 ju_count(arr::JudyL, idx1::Uint, idx2::Uint) = ccall((:JudyLCount, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.b.jarr, idx1, idx2, C_NULL)
 
 
-# locate the nth index that is present (n starts wih 1)
-# to refer to the last index in a fully populated array (all indexes present, which is rare), use n = 0.
-# return tuple (1, index_pos) on success or (0, undefined) on not found/error
+## locate the nth index that is present (n starts wih 1)
+## to refer to the last index in a fully populated array (all indexes present, which is rare), use n = 0.
+## return tuple (1, index_pos) on success or (0, undefined) on not found/error
 ju_by_count(arr::Judy1, n::Integer) = ju_by_count(arr, convert(Uint, n))
 function ju_by_count(arr::Judy1, n::Uint)
     ret::Int32 = ccall((:Judy1ByCount, _judylib), Int32, (Ptr{Void}, Uint, Ptr{Uint}, Ptr{Void}), arr.b.jarr, n, arr.b.nth_idx, C_NULL)
@@ -258,8 +264,8 @@ function ju_by_count(arr::Judy1, n::Uint)
 end
 
 
-# locate the nth index that is present (n starts wih 1)
-# return tuple (value at index, pointer to value, index_pos) on success or (undefined, C_NULL, undefined) on not found/error
+## locate the nth index that is present (n starts wih 1)
+## return tuple (value at index, pointer to value, index_pos) on success or (undefined, C_NULL, undefined) on not found/error
 ju_by_count(arr::JudyL, n::Integer) = ju_by_count(arr, convert(Uint, n))
 function ju_by_count(arr::JudyL, n::Uint)
     ret::Ptr{Uint} = ccall((:JudyLByCount, _judylib), Ptr{Uint}, (Ptr{Void}, Uint, Ptr{Uint}, Ptr{Void}), arr.b.jarr, n, arr.b.nth_idx, C_NULL)
