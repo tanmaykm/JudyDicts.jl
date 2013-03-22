@@ -90,8 +90,9 @@ function setindex!(arr::JudyL, val::Any, idx::Integer)
         ju_unset(arr, idx)
         return Nothing
     end
-    (C_NULL != ju_set(arr, idx, val)) ? val : Nothing
+    error("Unknown value type: $(typeof(val))")
 end
+setindex!(arr::JudyL, val::Integer, idx::Integer) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 
 function getindex(arr::JudySL, idx::String)
     ret_tuple = ju_get(arr, idx)
@@ -103,8 +104,9 @@ function setindex!(arr::JudySL, val::Any, idx::String)
         ju_unset(arr, idx)
         return Nothing
     end
-    (C_NULL != ju_set(arr, idx, val)) ? val : Nothing
+    error("Unknown value type: $(typeof(val))")
 end
+setindex!(arr::JudySL, val::Integer, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 
 function getindex(arr::JudyHS, idx::Array{Uint8})
     ret_tuple = ju_get(arr, idx)
@@ -116,8 +118,9 @@ function setindex!(arr::JudyHS, val::Any, idx::Array{Uint8})
         ju_unset(arr, idx)
         return Nothing
     end
-    (C_NULL != ju_set(arr, idx, val)) ? val : Nothing
+    error("Unknown value type: $(typeof(val))")
 end
+setindex!(arr::JudyHS, val::Integer, idx::Array{Uint8}) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 
 length(arr::Judy1) = ju_count(arr)
 length(arr::JudyL) = ju_count(arr)

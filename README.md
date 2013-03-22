@@ -1,6 +1,21 @@
 [Judy arrays](http://en.wikipedia.org/wiki/Judy_array) are fast associative arrays with low memory usage.
 
-This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http://judy.sourceforge.net/), but also provides array like syntax for ease of use.
+This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http://judy.sourceforge.net/), and also provides array like syntax for ease of use.
+
+Speed comparison (output of test/time_test.jl):
+-----------------------------------------------
+comparing JudyL with Dict{Int64, Int64}
+Dict{Int64, Int64}...
+elapsed time: 3.432425353 seconds
+JudyL...
+elapsed time: 2.395959441 seconds
+
+comparing JudySL with Dict{String, Int64}
+Dict{String, Int64}...
+elapsed time: 36.843917985 seconds
+JudySL...
+elapsed time: 6.631340927 seconds
+
 
 Example (simple):
 -----------------
@@ -33,25 +48,11 @@ Example (simple):
     julia> println(ja["One More"] / ja["First"])
     2.0
 
-    julia> ja = JudySL()
-    JudySL (empty)
-
-    julia> ja["One"] = 1
-    1
-
-    julia> ja["Two"] = 2
-    2
-
-    julia> ja["Hundred"] = 100
-    100
-
     julia> for x in ja
              println(x)
            end
-    (0x0000000000000064,"Hundred")
-    (0x0000000000000001,"One")
-    (0x0000000000000002,"Two")
-
+    (0x0000000000000064,"First")
+    (0x00000000000000c8,"One More")
 
 Other APIs:
 -----------
