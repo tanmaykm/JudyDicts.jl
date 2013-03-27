@@ -3,7 +3,7 @@ using Test
 
 function test_juHS()
     #println("testing JUHS...")
-    local ja = JudyHS()
+    local ja = JudyArray{Array{Uint8}, Integer}()
 
     local indices = [(b"0001", 11), (b"00021", 121), (b"0005", 15)]
 
@@ -34,7 +34,7 @@ end
 
 function test_juSL()
     #println("testing JUSL...")
-    local ja = JudySL()
+    local ja = JudyArray{String, Integer}()
 
     local indices = [("0001", 11), ("00021", 121), ("0005", 15)]
 
@@ -79,7 +79,7 @@ end
 
 function test_juL()
     #println("testing JUL...")
-    local ja = JudyL()
+    local ja = JudyArray{Integer, Integer}()
 
     @test 0 == ju_mem_used(ja)
 
@@ -144,7 +144,7 @@ end
 
 function test_ju1()
     #println("testing JU1...")
-    local ja = Judy1()
+    local ja = JudyArray{Integer, Bool}()
 
     @test 0 == ju_mem_used(ja)
 

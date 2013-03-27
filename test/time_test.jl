@@ -2,7 +2,7 @@ using Judy
 using Test
 
 function compare_str_dict()
-    println("comparing JudySL with Dict{String, Int64}")
+    println("comparing JudyArray{String, Integer} with Dict{String, Int64}")
     #const nloops = 10000000
     const nloops = 100000
     local x::Int64 = 0
@@ -24,7 +24,7 @@ function compare_str_dict()
     d = Nothing
     gc()
 
-    ja = JudySL()
+    ja = JudyArray{String, Integer}()
     gc_disable()
     #println("inserts JudySL...")
     ja_ins = @elapsed for i in 1:nloops
@@ -44,7 +44,7 @@ function compare_str_dict()
 end
 
 function compare_int64_dict()
-    println("comparing JudyL with Dict{Int64, Int64}")
+    println("comparing JudyArray{Integer, Integer} with Dict{Int64, Int64}")
     const nloops = 10000000
     local x::Int64 = 0
 
@@ -65,7 +65,7 @@ function compare_int64_dict()
     d = Nothing
     gc()
 
-    ja = JudyL()
+    ja = JudyArray{Integer, Integer}()
     gc_disable()
     #println("inserts: JudyL...")
     ja_ins = @elapsed for i in 1:nloops
