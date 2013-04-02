@@ -5,17 +5,17 @@ This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http
 Speed comparison (output of test/time\_test.jl):
 -----------------------------------------------
 ````
-loops: 10000000 compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}
-set => dict: 3.384667585, judy: 2.062912086
-get => dict: 2.647226134, judy: 3.763169382
+items 10000000 compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}
+set => dict: 3.52637685, judy: 2.08612242
+get => dict: 2.622192309, judy: 3.117356024
 
-loops: 20000 compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}
-set => dict: 1.698076728, trie: 1.886814575, judy: 1.102385142
-get => dict: 2.695508126, trie: 1.082784111, judy: 1.032443957
+items 20000 compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}
+set => dict: 1.660365446, trie: 1.847608276, judy: 1.069796761
+get => dict: 2.665482163, trie: 1.105458666, judy: 0.987667069
 
-loops: 20000 compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}
-set => dict: 1.631594123, trie: 1.643936574, judy: 1.958270702
-get => dict: 3.427168931, trie: 1.908051037, judy: 1.577238887
+items 20000 compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}
+set => dict: 1.572052548, trie: 1.580906381, judy: 1.930858175
+get => dict: 3.755708956, trie: 1.872941903, judy: 1.582678214
 ````
 
 These tests are just indicative and extensive testing hasn't been done yet.
