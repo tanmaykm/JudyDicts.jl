@@ -1,10 +1,10 @@
-using Judy
+using JudyDicts
 using Test
 
 
 function test_juHS()
     #println("testing JUHS...")
-    local ja = JudyArray{Array{Uint8}, Int}()
+    local ja = JudyDict{Array{Uint8}, Int}()
 
     local indices = [(b"0001", 11), (b"00021", 121), (b"0005", 15)]
 
@@ -35,7 +35,7 @@ end
 
 function test_juSO()
     #println("testing JUSL...")
-    local ja = JudyArray{String, ASCIIString}()
+    local ja = JudyDict{String, ASCIIString}()
 
     local indices = [("0001", "11"), ("00021", "121"), ("0005", "15")]
 
@@ -77,7 +77,7 @@ end
 
 function test_juSL()
     #println("testing JUSL...")
-    local ja = JudyArray{String, Int}()
+    local ja = JudyDict{String, Int}()
 
     local indices = [("0001", 11), ("00021", 121), ("0005", 15)]
 
@@ -122,7 +122,7 @@ end
 
 function test_juLO()
     #println("testing JUL...")
-    local ja = JudyArray{Int, ASCIIString}()
+    local ja = JudyDict{Int, ASCIIString}()
 
     @test 0 == ju_mem_used(ja)
 
@@ -184,7 +184,7 @@ end
 
 function test_juL()
     #println("testing JUL...")
-    local ja = JudyArray{Int, Int}()
+    local ja = JudyDict{Int, Int}()
 
     @test 0 == ju_mem_used(ja)
 
@@ -249,7 +249,7 @@ end
 
 function test_ju1()
     #println("testing JU1...")
-    local ja = JudyArray{Int, Bool}()
+    local ja = JudyDict{Int, Bool}()
 
     @test 0 == ju_mem_used(ja)
 

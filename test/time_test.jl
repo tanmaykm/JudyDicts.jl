@@ -1,4 +1,4 @@
-using Judy
+using JudyDicts
 using Test
 require("Trie")
 using Tries
@@ -37,9 +37,9 @@ end
 
 function compare_str_obj()
     const nloops = 20000
-    println("loops: ", nloops, " compare: JudyArray{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}")
+    println("loops: ", nloops, " compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}")
 
-    ja = JudyArray{String, ASCIIString}()
+    ja = JudyDict{String, ASCIIString}()
     ja_ins = @bmsetstrobjloop nloops ja
     ja_access = @bmgetstrobjloop nloops ja
     #println("judy ins:", ja_ins, " access:", ja_access)
@@ -87,9 +87,9 @@ end
 
 function compare_str()
     const nloops = 20000
-    println("loops: ", nloops, " compare: JudyArray{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}")
+    println("loops: ", nloops, " compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}")
 
-    ja = JudyArray{String, Int}()
+    ja = JudyDict{String, Int}()
     ja_ins = @bmsetstrloop nloops ja
     ja_access = @bmgetstrloop nloops ja
 
@@ -134,13 +134,13 @@ end
 
 function compare_int64()
     const nloops = 10000000
-    println("loops: ", nloops, " compare: JudyArray{Int, Int} vs. Dict{Int64, Int64}")
+    println("loops: ", nloops, " compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}")
 
     d = Dict{Int64, Int64}()
     dict_ins = @bmsetintloop nloops d
     dict_access = @bmgetintloop nloops d
 
-    ja = JudyArray{Int, Int}()
+    ja = JudyDict{Int, Int}()
     ja_ins = @bmsetintloop nloops ja
     ja_access = @bmgetintloop nloops ja
 
