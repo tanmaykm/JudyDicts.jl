@@ -1,9 +1,12 @@
 using Judy
 using Test
 
+
+
+
 function test_juHS()
     #println("testing JUHS...")
-    local ja = JudyArray{Array{Uint8}, Integer}()
+    local ja = JudyArray{Array{Uint8}, Int}()
 
     local indices = [(b"0001", 11), (b"00021", 121), (b"0005", 15)]
 
@@ -34,7 +37,7 @@ end
 
 function test_juSL()
     #println("testing JUSL...")
-    local ja = JudyArray{String, Integer}()
+    local ja = JudyArray{String, Int}()
 
     local indices = [("0001", 11), ("00021", 121), ("0005", 15)]
 
@@ -77,9 +80,71 @@ function test_juSL()
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
 end
 
+function test_juLO()
+    #println("testing JUL...")
+    local ja = JudyArray{Int, ASCIIString}()
+
+    @test 0 == ju_mem_used(ja)
+
+    local indices = [(1, "11"), (5, "15"), (21, "121"), (41, "141"), (51, "151"), (61, "161")]
+
+    for i in indices
+        ja[i[1]] = i[2]
+    end
+
+    for i in indices
+        @test i[2] == ja[i[1]]
+    end
+
+    @test length(indices) == ju_count(ja)
+
+    for i in 1:length(indices)
+        ret_tuple = ju_by_count(ja, i)
+        @test ((indices[i])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[i])[1] == ret_tuple[3])
+    end
+
+    @test ju_mem_used(ja) > 0
+
+    ret_tuple = (0, C_NULL, 0)
+    for i in 1:length(indices)
+        ret_tuple = (i == 1) ? ju_first(ja) : ju_next(ja)
+        @test ((indices[i])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[i])[1] == ret_tuple[3])
+    end
+    @test C_NULL == (ju_next(ja))[2]
+    for i in 1:length(indices)
+        ret_tuple = (i == 1) ? ju_last(ja) : ju_prev(ja)
+        local rev_idx = length(indices)-i+1
+        @test ((indices[rev_idx])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[rev_idx])[1] == ret_tuple[3])
+    end
+    @test C_NULL == (ju_prev(ja))[2]
+
+    i = 1
+    for x in ja
+        @test ((indices[i])[2] == x[1]) && ((indices[i])[1] == x[2])
+        i+=1
+    end
+
+    for i in 1:20
+        ret_tuple = (i == 1) ? ju_first_empty(ja) : ju_next_empty(ja)
+        @test 1 == ret_tuple[1]
+    end
+    for i in 1:20
+        ret = (i == 1) ? ju_last_empty(ja) : ju_prev_empty(ja)
+        @test 1 == ret_tuple[1]
+    end
+
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    ja[(indices[1])[1]] = "2" * (indices[1])[2]
+    @test "2" * (indices[1])[2] == ja[(indices[1])[1]]
+
+    @test 1 == ju_unset(ja, (indices[1])[1])
+    @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+end
+
+
 function test_juL()
     #println("testing JUL...")
-    local ja = JudyArray{Integer, Integer}()
+    local ja = JudyArray{Int, Int}()
 
     @test 0 == ju_mem_used(ja)
 
@@ -144,7 +209,7 @@ end
 
 function test_ju1()
     #println("testing JU1...")
-    local ja = JudyArray{Integer, Bool}()
+    local ja = JudyArray{Int, Bool}()
 
     @test 0 == ju_mem_used(ja)
 
@@ -204,4 +269,5 @@ test_juHS()
 test_juSL()
 test_juL()
 test_ju1()
+test_juLO()
 

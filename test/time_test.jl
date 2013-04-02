@@ -1,90 +1,103 @@
 using Judy
 using Test
+require("Trie")
+using Tries
 
-function compare_str_dict()
-    println("comparing JudyArray{String, Integer} with Dict{String, Int64}")
-    #const nloops = 10000000
-    const nloops = 100000
-    local x::Int64 = 0
+import Base.getindex
+
+getindex(t::Trie{Int64},k::String) = get(t,k)
+
+macro bmsetstrloop(nloops, arr)
+    quote
+        gc_disable()
+        local i::Int
+        local tm = @elapsed for i in 1:$(nloops)
+            $(arr)[repeat(string(i), 10)] = i
+        end
+        gc_enable()
+        gc()
+        tm
+    end
+end
+
+macro bmgetstrloop(nloops, arr)
+    quote
+        local x::Int = 0
+        gc_disable()
+        local tm = @elapsed for i in 1:$(nloops)
+            x += $(arr)[repeat(string(i), 10)]
+        end
+        gc_enable()
+        arr = Nothing
+        gc()
+        tm
+    end
+end
+
+function compare_str()
+    println("comparing JudyArray{String, Int} with Dict{String, Int64} and Trie{Int64}")
+    const nloops = 50000
+
+    ja = JudyArray{String, Int}()
+    ja_ins = @bmsetstrloop nloops ja
+    ja_access = @bmgetstrloop nloops ja
+
+    t = Trie{Int64}()
+    trie_ins = @bmsetstrloop nloops t
+    trie_access = @bmgetstrloop nloops t
 
     d = Dict{String, Int64}()
-    gc_disable()
-    #println("inserts: Dict{String, Int64}...")
-    dict_ins = @elapsed for i in 1:nloops
-        d[repeat(string(i), 10)] = i
-    end
-    gc_enable()
-    gc()
-    x = 0
-    #println("access Dict{String, Int64}...")
-    dict_access = @elapsed for i in 1:nloops
-        x += d[repeat(string(i), 10)]
-    end
-    gc_enable()
-    d = Nothing
-    gc()
+    dict_ins = @bmsetstrloop nloops d
+    dict_access = @bmgetstrloop nloops d
 
-    ja = JudyArray{String, Integer}()
-    gc_disable()
-    #println("inserts JudySL...")
-    ja_ins = @elapsed for i in 1:nloops
-        ja[repeat(string(i), 10)] = i
-    end
-    gc_enable()
-    gc()
-    #println("access JudySL...")
-    ja_access = @elapsed for i in 1:nloops
-        x += ja[repeat(string(i), 10)]
-    end
-    gc_enable()
-    ja = Nothing
-    gc()
-    println("inserts  => dict: ", dict_ins, ", judy: ", ja_ins);
-    println("accesses => dict: ", dict_access, ", judy: ", ja_access);
+    println("inserts  => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
+    println("accesses => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
 end
 
-function compare_int64_dict()
-    println("comparing JudyArray{Integer, Integer} with Dict{Int64, Int64}")
+macro bmsetintloop(nloops, arr)
+    quote
+        gc_disable()
+        local i::Int
+        local tm = @elapsed for i in 1:$(nloops)
+            $(arr)[i] = i
+        end
+        gc_enable()
+        gc()
+        tm
+    end
+end
+
+macro bmgetintloop(nloops, arr)
+    quote
+        local x::Int = 0
+        gc_disable()
+        local tm = @elapsed for i in 1:$(nloops)
+            x += $(arr)[i]
+        end
+        gc_enable()
+        arr = Nothing
+        gc()
+        tm
+    end
+end
+
+function compare_int64()
+    println("comparing JudyArray{Int, Int} with Dict{Int64, Int64}")
     const nloops = 10000000
-    local x::Int64 = 0
 
     d = Dict{Int64, Int64}()
-    gc_disable()
-    #println("inserts: Dict{Int64, Int64}...")
-    dict_ins = @elapsed for i in 1:nloops
-        d[i] = i
-    end
-    gc_enable()
-    gc()
-    x = 0
-    #println("access: Dict{Int64, Int64}...")
-    dict_access = @elapsed for i in 1:nloops
-        x += d[i]
-    end
-    gc_enable()
-    d = Nothing
-    gc()
+    dict_ins = @bmsetintloop nloops d
+    dict_access = @bmgetintloop nloops d
 
-    ja = JudyArray{Integer, Integer}()
-    gc_disable()
-    #println("inserts: JudyL...")
-    ja_ins = @elapsed for i in 1:nloops
-        ja[i] = i
-    end
-    gc_enable()
-    gc()
-    x = 0
-    #println("access: JudyL")
-    ja_access = @elapsed for i in 1:nloops
-        x += ja[i]
-    end
-    gc_enable()
-    ja = Nothing
-    gc()
+    ja = JudyArray{Int, Int}()
+    ja_ins = @bmsetintloop nloops ja
+    ja_access = @bmgetintloop nloops ja
+
     println("inserts  => dict: ", dict_ins, ", judy: ", ja_ins);
     println("accesses => dict: ", dict_access, ", judy: ", ja_access);
 end
 
-compare_int64_dict()
-compare_str_dict()
+compare_int64()
+println("")
+compare_str()
 
