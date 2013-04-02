@@ -36,8 +36,8 @@ macro bmgetstrobjloop(nloops, arr)
 end
 
 function compare_str_obj()
-    println("comparing JudyArray{String, ASCIIString} with Dict{String, ASCIIString} and Trie{ASCIIString}")
     const nloops = 20000
+    println("loops: ", nloops, " compare: JudyArray{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}")
 
     ja = JudyArray{String, ASCIIString}()
     ja_ins = @bmsetstrobjloop nloops ja
@@ -54,8 +54,8 @@ function compare_str_obj()
     dict_access = @bmgetstrobjloop nloops d
     #println("dict ins:", dict_ins, " access:", dict_access)
 
-    println("inserts  => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
-    println("accesses => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
+    println("set => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
+    println("get => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
 end
 
 macro bmgetstrloop(nloops, arr)
@@ -86,8 +86,8 @@ macro bmsetstrloop(nloops, arr)
 end
 
 function compare_str()
-    println("comparing JudyArray{String, Int} with Dict{String, Int64} and Trie{Int64}")
-    const nloops = 50000
+    const nloops = 20000
+    println("loops: ", nloops, " compare: JudyArray{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}")
 
     ja = JudyArray{String, Int}()
     ja_ins = @bmsetstrloop nloops ja
@@ -101,18 +101,18 @@ function compare_str()
     dict_ins = @bmsetstrloop nloops d
     dict_access = @bmgetstrloop nloops d
 
-    println("inserts  => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
-    println("accesses => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
+    println("set => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
+    println("get => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
 end
 
 macro bmsetintloop(nloops, arr)
     quote
-        gc_disable()
+        #gc_disable()
         local i::Int
         local tm = @elapsed for i in 1:$(nloops)
             $(arr)[i] = i
         end
-        gc_enable()
+        #gc_enable()
         gc()
         tm
     end
@@ -121,11 +121,11 @@ end
 macro bmgetintloop(nloops, arr)
     quote
         local x::Int = 0
-        gc_disable()
+        #gc_disable()
         local tm = @elapsed for i in 1:$(nloops)
             x += $(arr)[i]
         end
-        gc_enable()
+        #gc_enable()
         arr = Nothing
         gc()
         tm
@@ -133,8 +133,8 @@ macro bmgetintloop(nloops, arr)
 end
 
 function compare_int64()
-    println("comparing JudyArray{Int, Int} with Dict{Int64, Int64}")
     const nloops = 10000000
+    println("loops: ", nloops, " compare: JudyArray{Int, Int} vs. Dict{Int64, Int64}")
 
     d = Dict{Int64, Int64}()
     dict_ins = @bmsetintloop nloops d
@@ -144,8 +144,8 @@ function compare_int64()
     ja_ins = @bmsetintloop nloops ja
     ja_access = @bmgetintloop nloops ja
 
-    println("inserts  => dict: ", dict_ins, ", judy: ", ja_ins);
-    println("accesses => dict: ", dict_access, ", judy: ", ja_access);
+    println("set => dict: ", dict_ins, ", judy: ", ja_ins);
+    println("get => dict: ", dict_access, ", judy: ", ja_access);
 end
 
 compare_int64()
