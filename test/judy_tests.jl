@@ -2,8 +2,6 @@ using Judy
 using Test
 
 
-
-
 function test_juHS()
     #println("testing JUHS...")
     local ja = JudyArray{Array{Uint8}, Int}()
@@ -34,6 +32,48 @@ function test_juHS()
 
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
 end
+
+function test_juSO()
+    #println("testing JUSL...")
+    local ja = JudyArray{String, ASCIIString}()
+
+    local indices = [("0001", "11"), ("00021", "121"), ("0005", "15")]
+
+    for i in indices
+        ja[i[1]] = i[2]
+    end
+
+    for i in indices
+        @test i[2] == ja[i[1]]
+    end
+
+    ret_tuple = (Nothing, C_NULL, 0)
+    for i in 1:length(indices)
+        ret_tuple = (i == 1) ? ju_first(ja) : ju_next(ja)
+        @test ((indices[i])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[i])[1] == ret_tuple[3])
+    end
+    @test C_NULL == (ju_next(ja))[2]
+    for i in 1:length(indices)
+        ret_tuple = (i == 1) ? ju_last(ja) : ju_prev(ja)
+        local rev_idx = length(indices)-i+1
+        @test ((indices[rev_idx])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[rev_idx])[1] == ret_tuple[3])
+    end
+    @test C_NULL == (ju_prev(ja))[2]
+
+    i = 1
+    for x in ja
+        @test ((indices[i])[2] == x[1]) && ((indices[i])[1] == x[2])
+        i+=1
+    end
+
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    ja[(indices[1])[1]] = "2" * (indices[1])[2]
+    @test ("2" * ((indices[1])[2])) == ja[(indices[1])[1]]
+
+    @test 1 == ju_unset(ja, (indices[1])[1])
+    @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+end
+
 
 function test_juSL()
     #println("testing JUSL...")
@@ -270,4 +310,5 @@ test_juSL()
 test_juL()
 test_ju1()
 test_juLO()
+test_juSO()
 

@@ -5,19 +5,57 @@ using Tries
 
 import Base.getindex
 
-getindex(t::Trie{Int64},k::String) = get(t,k)
+getindex{V}(t::Trie{V},k::String) = get(t,k)
 
-macro bmsetstrloop(nloops, arr)
+
+macro bmsetstrobjloop(nloops, arr)
     quote
         gc_disable()
         local i::Int
         local tm = @elapsed for i in 1:$(nloops)
-            $(arr)[repeat(string(i), 10)] = i
+            $(arr)[repeat(string(i), 10)] = string(i)
         end
         gc_enable()
         gc()
         tm
     end
+end
+
+macro bmgetstrobjloop(nloops, arr)
+    quote
+        local x::String = ""
+        gc_disable()
+        local tm = @elapsed for i in 1:$(nloops)
+            x *= $(arr)[repeat(string(i), 10)]
+        end
+        gc_enable()
+        arr = Nothing
+        gc()
+        tm
+    end
+end
+
+function compare_str_obj()
+    println("comparing JudyArray{String, ASCIIString} with Dict{String, ASCIIString} and Trie{ASCIIString}")
+    const nloops = 20000
+
+    ja = JudyArray{String, ASCIIString}()
+    ja_ins = @bmsetstrobjloop nloops ja
+    ja_access = @bmgetstrobjloop nloops ja
+    #println("judy ins:", ja_ins, " access:", ja_access)
+
+    t = Trie{ASCIIString}()
+    trie_ins = @bmsetstrobjloop nloops t
+    trie_access = @bmgetstrobjloop nloops t
+    #println("trie ins:", trie_ins, " access:", trie_access)
+
+    d = Dict{String, ASCIIString}()
+    dict_ins = @bmsetstrobjloop nloops d
+    dict_access = @bmgetstrobjloop nloops d
+    #println("dict ins:", dict_ins, " access:", dict_access)
+
+    println("inserts  => dict: ", dict_ins, ", trie: ", trie_ins, ", judy: ", ja_ins);
+    println("accesses => dict: ", dict_access, ", trie: ", trie_access, ", judy: ", ja_access);
 end
 
 macro bmgetstrloop(nloops, arr)
@@ -29,6 +67,19 @@ macro bmgetstrloop(nloops, arr)
         end
         gc_enable()
         arr = Nothing
+        gc()
+        tm
+    end
+end
+
+macro bmsetstrloop(nloops, arr)
+    quote
+        gc_disable()
+        local i::Int
+        local tm = @elapsed for i in 1:$(nloops)
+            $(arr)[repeat(string(i), 10)] = i
+        end
+        gc_enable()
         gc()
         tm
     end
@@ -100,4 +151,6 @@ end
 compare_int64()
 println("")
 compare_str()
+println("")
+compare_str_obj()
 

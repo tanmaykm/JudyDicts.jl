@@ -88,9 +88,11 @@ getindex(arr::JudyArray{Int, Int}, idx::Int) = @_get arr idx
 getindex{V}(arr::JudyArray{Int,V}, idx::Int) = @_get arr idx
 
 
-setindex!(arr::JudyArray{String, Int}, val::Int, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 setindex!(arr::JudyArray{String, Int}, val::Any, idx::String) = @_unset arr val idx
+setindex!(arr::JudyArray{String, Int}, val::Int, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
+setindex!{V}(arr::JudyArray{String, V}, val::V, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 getindex(arr::JudyArray{String, Int}, idx::String) = @_get arr idx
+getindex{V}(arr::JudyArray{String, V}, idx::String) = @_get arr idx
 
 setindex!(arr::JudyArray{Array{Uint8}, Int}, val::Any, idx::Array{Uint8}) = @_unset arr val idx
 setindex!(arr::JudyArray{Array{Uint8}, Int}, val::Integer, idx::Array{Uint8}) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
@@ -98,7 +100,6 @@ getindex(arr::JudyArray{Array{Uint8}, Int}, idx::Array{Uint8}) = @_get arr idx
 
 length(arr::JudyArray{Int, Bool}) = ju_count(arr)
 length{V}(arr::JudyArray{Int,V}) = ju_count(arr)
-#length(arr::JudyArray{Integer, Integer}) = ju_count(arr)
 
 ##
 ## INDEXABLE COLLECTIONS END
@@ -130,7 +131,20 @@ end
 function ju_set(arr::JudyArray{Int, Int}, idx::Int, val::Int)
     ret::Ptr{Uint} = ccall((:JudyLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Uint, Ptr{Void}), arr.pjarr, convert(Uint, idx), C_NULL)
     if (ret != C_NULL)
-        unsafe_assign(ret, val)
+        unsafe_assign(ret, convert(Uint, val))
+        arr.jarr = arr.pjarr[1]
+    end
+    ret
+end
+
+function ju_set{V}(arr::JudyArray{String, V}, idx::String, val::V)
+    @assert length(idx) < MAX_STR_IDX_LEN
+    # unset first to remove old object from gc_store
+    ju_unset(arr, idx)
+    arr.gc_store[object_id(val)] = val
+    ret::Ptr{Uint} = ccall((:JudySLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Ptr{Void}), arr.pjarr, bytestring(idx), C_NULL)
+    if (ret != C_NULL)
+        unsafe_assign(ret, object_id(val))
         arr.jarr = arr.pjarr[1]
     end
     ret
@@ -185,6 +199,14 @@ function ju_get{V}(arr::JudyArray{Int,V}, idx::Int)
     end
     return (Nothing, C_NULL)
 end
+function ju_get{V}(arr::JudyArray{String,V}, idx::String)
+    ret_tuple = @_ju_get arr bytestring(idx) Ptr{Uint8} :JudySLGet
+    if(ret_tuple[2] != C_NULL)
+        #we had a value stored there. get the actual object from the gc_store
+        return (arr.gc_store[ret_tuple[1]], ret_tuple[2])
+    end
+    return (Nothing, C_NULL)
+end
 
 
 ## unset value at index
@@ -209,6 +231,15 @@ function ju_unset{V}(arr::JudyArray{Int,V}, idx::Int)
     end
 end
 ju_unset(arr::JudyArray{String, Int}, idx::String) = @_ju_unset arr bytestring(idx) Ptr{Uint8} :JudySLDel
+function ju_unset{V}(arr::JudyArray{String,V}, idx::String)
+    ret_tuple = @_ju_get arr bytestring(idx) Ptr{Uint8} :JudySLGet
+    if(ret_tuple[2] != C_NULL)
+        # we had a value set there. unset it from the array and delete the stored reference from gc_store
+        ret = @_ju_unset arr bytestring(idx) Ptr{Uint8} :JudySLDel
+        delete!(arr.gc_store, ret_tuple[1])
+        ret
+    end
+end
 function ju_unset(arr::JudyArray{Array{Uint8}, Int}, idx::Array{Uint8})
     ret::Int32 = ccall((:JudyHSDel, _judylib), Int32, (Ptr{Ptr{Void}}, Ptr{Uint8}, Uint, Ptr{Void}), arr.pjarr, idx, convert(Uint, length(idx)), C_NULL)
     arr.jarr = arr.pjarr[1]
@@ -269,9 +300,9 @@ start{V}(arr::JudyArray{Int, V}) = ju_first(arr)
 done{V}(arr::JudyArray{Int, V}, state) = (C_NULL == state[2])
 next{V}(arr::JudyArray{Int, V}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
 
-start(arr::JudyArray{String, Int}) = ju_first(arr)
-done(arr::JudyArray{String, Int}, state) = (C_NULL == state[2])
-next(arr::JudyArray{String, Int}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
+start{V}(arr::JudyArray{String, V}) = ju_first(arr)
+done{V}(arr::JudyArray{String, V}, state) = (C_NULL == state[2])
+next{V}(arr::JudyArray{String, V}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
 
 ## The base iteration methods return a pointer to the value as well
 ju_first(arr::JudyArray{Int, Bool}) = ju_first(arr, uint(0))
@@ -298,17 +329,27 @@ function ju_first{V}(arr::JudyArray{Int, V}, idx::Int)
     (C_NULL, C_NULL, arr.nth_idx[1])
 end
 
-ju_first(arr::JudyArray{String, Int}) = ju_first(arr, "")
+ju_first{V}(arr::JudyArray{String, V}) = ju_first(arr, "")
 function ju_first(arr::JudyArray{String, Int}, idx::String)
     @assert length(idx) < MAX_STR_IDX_LEN
     @_strcpy arr.nth_idx bytestring(idx)
     ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
         len::Uint = @_strlen arr.nth_idx
-        (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
+        (unsafe_ref(ret), ret, ASCIIString(arr.nth_idx[1:len]))
     else
         (uint(0), C_NULL, "")
+    end
+end
+function ju_first{V}(arr::JudyArray{String, V}, idx::String)
+    @assert length(idx) < MAX_STR_IDX_LEN
+    @_strcpy arr.nth_idx bytestring(idx)
+    ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
+    if(ret != C_NULL)
+        len::Uint = @_strlen arr.nth_idx
+        (arr.gc_store[unsafe_ref(ret)], ret, ASCIIString(arr.nth_idx[1:len]))
+    else
+        (Nothing, C_NULL, "")
     end
 end
 
@@ -341,7 +382,7 @@ function ju_next{V}(arr::JudyArray{Int, V})
     (C_NULL, C_NULL, arr.nth_idx[1])
 end
 
-function ju_next(arr::JudyArray{String, Int}, idx::String)
+function ju_next{V}(arr::JudyArray{String, V}, idx::String)
     @assert length(idx) < MAX_STR_IDX_LEN
     @_strcpy arr.nth_idx bytestring(idx)
     ju_next(arr)
@@ -349,11 +390,19 @@ end
 function ju_next(arr::JudyArray{String, Int})
     ret::Ptr{Uint} = ccall((:JudySLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
         len::Uint = @_strlen arr.nth_idx
-        (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
+        (unsafe_ref(ret), ret, ASCIIString(arr.nth_idx[1:len]))
     else
         (uint(0), C_NULL, "")
+    end
+end
+function ju_next{V}(arr::JudyArray{String, V})
+    ret::Ptr{Uint} = ccall((:JudySLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
+    if(ret != C_NULL)
+        len::Uint = @_strlen arr.nth_idx
+        (arr.gc_store[unsafe_ref(ret)], ret, ASCIIString(arr.nth_idx[1:len]))
+    else
+        (Nothing, C_NULL, "")
     end
 end
 
@@ -407,6 +456,29 @@ function ju_last(arr::JudyArray{String, Int}, idx::String)
         (uint(0), C_NULL, "")
     end
 end
+function ju_last{V}(arr::JudyArray{String, V})
+    ccall((:memset, "libc"), Ptr{Uint8}, (Ptr{Uint8}, Uint8, Uint), arr.nth_idx, 0xff, MAX_STR_IDX_LEN-1)
+    arr.nth_idx[MAX_STR_IDX_LEN-1] = 0
+    ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
+    if(ret != C_NULL)
+        len::Uint = @_strlen arr.nth_idx
+        (arr.gc_store[unsafe_ref(ret)], ret, ASCIIString(arr.nth_idx[1:len]))
+    else
+        (Nothing, C_NULL, "")
+    end
+end
+function ju_last{V}(arr::JudyArray{String, V}, idx::String)
+    @assert length(idx) < MAX_STR_IDX_LEN
+    @_strcpy arr.nth_idx bytestring(idx)
+    ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
+    if(ret != C_NULL)
+        len::Uint = @_strlen arr.nth_idx
+        (arr.gc_store[unsafe_ref(ret)], ret, ASCIIString(arr.nth_idx[1:len]))
+    else
+        (Nothing, C_NULL, "")
+    end
+end
+
 
 
 ju_prev(arr::JudyArray{Int, Bool}, idx::Int) = ju_prev(arr, convert(Uint, idx))
@@ -437,7 +509,7 @@ function ju_prev{V}(arr::JudyArray{Int, V})
     return (C_NULL, C_NULL, arr.nth_idx[1])
 end
 
-function ju_prev(arr::JudyArray{String, Int}, idx::String)
+function ju_prev{V}(arr::JudyArray{String, V}, idx::String)
     @assert length(idx) < MAX_STR_IDX_LEN
     @_strcpy arr.nth_idx bytestring(idx)
     ju_prev(arr)
@@ -450,6 +522,15 @@ function ju_prev(arr::JudyArray{String, Int})
         (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
     else
         (0, C_NULL, "")
+    end
+end
+function ju_prev{V}(arr::JudyArray{String, V})
+    ret::Ptr{Uint} = ccall((:JudySLPrev, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.jarr, arr.nth_idx, C_NULL)
+    if(ret != C_NULL)
+        len::Uint = @_strlen arr.nth_idx
+        (arr.gc_store[unsafe_ref(ret)], ret, ASCIIString(arr.nth_idx[1:len]))
+    else
+        (Nothing, C_NULL, "")
     end
 end
 
