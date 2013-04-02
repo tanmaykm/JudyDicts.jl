@@ -98,8 +98,8 @@ setindex!(arr::JudyDict{Array{Uint8}, Int}, val::Any, idx::Array{Uint8}) = @_uns
 setindex!(arr::JudyDict{Array{Uint8}, Int}, val::Integer, idx::Array{Uint8}) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 getindex(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8}) = @_get arr idx
 
-length(arr::JudyDict{Int, Bool}) = ju_count(arr)
-length{V}(arr::JudyDict{Int,V}) = ju_count(arr)
+length(arr::JudyDict{Int, Bool}) = int(ju_count(arr))
+length{V}(arr::JudyDict{Int,V}) = int(ju_count(arr))
 
 ##
 ## INDEXABLE COLLECTIONS END
