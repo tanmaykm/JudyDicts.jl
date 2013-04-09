@@ -215,10 +215,8 @@ end
 ## returns the count.
 ## a return value of 0 can be valid as a count, or it can indicate a special case for fully populated array (32-bit machines only).
 ## see Judy documentation for ways to resolve this.
-ju_count(arr::JudyDict{Int, Bool}, idx1::Int, idx2::Int) = ccall((:Judy1Count, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.pjarr[1], convert(Uint, idx1), convert(Uint, idx2), C_NULL)
-ju_count(arr::JudyDict{Int, Bool}) = ju_count(arr, 0, -1)
-ju_count{V}(arr::JudyDict{Int,V}, idx1::Int, idx2::Int) = ccall((:JudyLCount, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.pjarr[1], convert(Uint, idx1), convert(Uint, idx2), C_NULL)
-ju_count{V}(arr::JudyDict{Int,V}) = ju_count(arr, 0, -1)
+ju_count(arr::JudyDict{Int, Bool}, idx1::Int=0, idx2::Int=-1) = ccall((:Judy1Count, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.pjarr[1], convert(Uint, idx1), convert(Uint, idx2), C_NULL)
+ju_count{V}(arr::JudyDict{Int,V}, idx1::Int=0, idx2::Int=-1) = ccall((:JudyLCount, _judylib), Uint, (Ptr{Void}, Uint, Uint, Ptr{Void}), arr.pjarr[1], convert(Uint, idx1), convert(Uint, idx2), C_NULL)
 
 
 ## locate the nth index that is present (n starts wih 1)
@@ -273,22 +271,19 @@ done{V}(arr::JudyDict{String, V}, state) = (C_NULL == state[2])
 next{V}(arr::JudyDict{String, V}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
 
 ## The base iteration methods return a pointer to the value as well
-ju_first(arr::JudyDict{Int, Bool}) = ju_first(arr, uint(0))
-ju_first(arr::JudyDict{Int, Bool}, idx::Int) = ju_first(arr, convert(Uint, idx))
-function ju_first(arr::JudyDict{Int, Bool}, idx::Uint)
-    arr.nth_idx[1] = idx
+function ju_first(arr::JudyDict{Int, Bool}, idx::Int=0)
+    arr.nth_idx[1] = convert(Uint, idx)
     ret::Int32 = ccall((:Judy1First, _judylib), Int32, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     return (ret, arr.nth_idx[1])
 end
 
-ju_first{V}(arr::JudyDict{Int, V}) = ju_first(arr, 0)
-function ju_first(arr::JudyDict{Int, Int}, idx::Int)
+function ju_first(arr::JudyDict{Int, Int}, idx::Int=0)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
-function ju_first{V}(arr::JudyDict{Int, V}, idx::Int)
+function ju_first{V}(arr::JudyDict{Int, V}, idx::Int=0)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
@@ -297,8 +292,7 @@ function ju_first{V}(arr::JudyDict{Int, V}, idx::Int)
     (C_NULL, C_NULL, arr.nth_idx[1])
 end
 
-ju_first{V}(arr::JudyDict{String, V}) = ju_first(arr, "")
-function ju_first(arr::JudyDict{String, Int}, idx::String)
+function ju_first(arr::JudyDict{String, Int}, idx::String="")
     @assert length(idx) < MAX_STR_IDX_LEN
     @_strcpy arr.nth_idx bytestring(idx)
     ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
@@ -308,7 +302,7 @@ function ju_first(arr::JudyDict{String, Int}, idx::String)
     end
     (uint(0), C_NULL, "")
 end
-function ju_first{V}(arr::JudyDict{String, V}, idx::String)
+function ju_first{V}(arr::JudyDict{String, V}, idx::String="")
     @assert length(idx) < MAX_STR_IDX_LEN
     @_strcpy arr.nth_idx bytestring(idx)
     ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
@@ -371,24 +365,20 @@ function ju_next{V}(arr::JudyDict{String, V})
 end
 
 
-ju_last(arr::JudyDict{Int, Bool}) = ju_last(arr, -1)
-ju_last(arr::JudyDict{Int, Bool}, idx::Int) = ju_last(arr, convert(Uint, idx))
-function ju_last(arr::JudyDict{Int, Bool}, idx::Uint)
-    arr.nth_idx[1] = idx
+function ju_last(arr::JudyDict{Int, Bool}, idx::Int=-1)
+    arr.nth_idx[1] = convert(Uint, idx)
     ret::Int32 = ccall((:Judy1Last, _judylib), Int32, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     return (ret, arr.nth_idx[1])
 end
 
-ju_last{V}(arr::JudyDict{Int, V}) = ju_last(arr, -1)
-ju_last{V}(arr::JudyDict{Int, V}, idx::Int) = ju_last(arr, convert(Uint, idx))
-function ju_last(arr::JudyDict{Int, Int}, idx::Uint)
-    arr.nth_idx[1] = idx
+function ju_last(arr::JudyDict{Int, Int}, idx::Int=-1)
+    arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
-function ju_last{V}(arr::JudyDict{Int, V}, idx::Uint)
-    arr.nth_idx[1] = idx
+function ju_last{V}(arr::JudyDict{Int, V}, idx::Int=-1)
+    arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, arr.nth_idx[1])
@@ -507,11 +497,8 @@ macro _ju_iter_empty(arr, idx, fn)
     end
 end
 
-ju_first_empty(arr::JudyDict{Int, Bool}) = ju_first_empty(arr, 0)
-ju_first_empty(arr::JudyDict{Int, Bool}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :Judy1FirstEmpty
-
-ju_first_empty{V}(arr::JudyDict{Int, V}) = ju_first_empty(arr, 0)
-ju_first_empty{V}(arr::JudyDict{Int, V}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :JudyLFirstEmpty
+ju_first_empty(arr::JudyDict{Int, Bool}, idx::Int=0) = @_ju_iter_empty arr convert(Uint, idx) :Judy1FirstEmpty
+ju_first_empty{V}(arr::JudyDict{Int, V}, idx::Int=0) = @_ju_iter_empty arr convert(Uint, idx) :JudyLFirstEmpty
 
 ju_next_empty(arr::JudyDict{Int, Bool}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :Judy1NextEmpty
 ju_next_empty(arr::JudyDict{Int, Bool}) = @_ju_iter_empty_cont arr :Judy1NextEmpty
@@ -519,11 +506,8 @@ ju_next_empty(arr::JudyDict{Int, Bool}) = @_ju_iter_empty_cont arr :Judy1NextEmp
 ju_next_empty{V}(arr::JudyDict{Int, V}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :JudyLNextEmpty
 ju_next_empty{V}(arr::JudyDict{Int, V}) = @_ju_iter_empty_cont arr :JudyLNextEmpty
 
-ju_last_empty(arr::JudyDict{Int, Bool}) = ju_last_empty(arr, -1)
-ju_last_empty(arr::JudyDict{Int, Bool}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :Judy1LastEmpty
-
-ju_last_empty{V}(arr::JudyDict{Int, V}) = ju_last_empty(arr, -1)
-ju_last_empty{V}(arr::JudyDict{Int, V}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :JudyLLastEmpty
+ju_last_empty(arr::JudyDict{Int, Bool}, idx::Int=-1) = @_ju_iter_empty arr convert(Uint, idx) :Judy1LastEmpty
+ju_last_empty{V}(arr::JudyDict{Int, V}, idx::Int=-1) = @_ju_iter_empty arr convert(Uint, idx) :JudyLLastEmpty
 
 ju_prev_empty(arr::JudyDict{Int, Bool}, idx::Int) = @_ju_iter_empty arr convert(Uint, idx) :Judy1PrevEmpty
 ju_prev_empty(arr::JudyDict{Int, Bool}) = @_ju_iter_empty_cont arr :Judy1PrevEmpty
