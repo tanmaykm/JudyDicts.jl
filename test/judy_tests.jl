@@ -1,5 +1,5 @@
 using JudyDicts
-using Test
+using Base.Test
 
 
 function test_juHS()

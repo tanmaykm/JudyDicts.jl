@@ -120,7 +120,7 @@ end
 function ju_set{V}(arr::JudyDict{String, V}, idx::String, val::V)
     @assert length(idx) < MAX_STR_IDX_LEN
     ju_unset(arr, idx)      # unset first to remove old object from gc_store
-    ret::Ptr{Uint} = ccall((:JudySLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Ptr{Void}), arr.pjarr, bytestring(idx), C_NULL)
+    ret::Ptr{Uint} = ccall((:JudySLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Ptr{Void}), arr.pjarr, idx, C_NULL)
     if (ret != C_NULL)
         arr.gc_store[val] = val
         unsafe_assign(ret, convert(Uint, pointer_from_objref(val)))
@@ -203,7 +203,7 @@ function ju_unset{V}(arr::JudyDict{String,V}, idx::String)
     ret_tuple = ju_get(arr, idx)
     if(ret_tuple[2] != C_NULL)
         # we had a value set there. unset it from the array and delete the stored reference from gc_store
-        ret = @_ju_unset arr bytestring(idx) Ptr{Uint8} :JudySLDel
+        ret = @_ju_unset arr idx Ptr{Uint8} :JudySLDel
         delete!(arr.gc_store, ret_tuple[1])
         return ret
     end

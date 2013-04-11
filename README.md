@@ -4,24 +4,43 @@ This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http
 
 Speed comparison (output of test/time\_test.jl):
 -----------------------------------------------
+time\_test.jl 40000
 ````
-items 10000000 compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}
-set => dict: 3.52637685, judy: 2.08612242
-get => dict: 2.622192309, judy: 3.117356024
+items 40000 compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}
+set => dict: 0.003764559, judy: 0.007593068
+get => dict: 0.003972227, judy: 0.008115711
 
-items 20000 compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}
-set => dict: 1.660365446, trie: 1.847608276, judy: 1.069796761
-get => dict: 2.665482163, trie: 1.105458666, judy: 0.987667069
+items 40000 compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}
+set => dict: 0.026546593, trie: 1.617041746, judy: 0.024602444
+get => dict: 0.025077909, trie: 0.333609694, judy: 0.011907627
 
-items 20000 compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}
-set => dict: 1.572052548, trie: 1.580906381, judy: 1.930858175
-get => dict: 3.755708956, trie: 1.872941903, judy: 1.582678214
+items 40000 compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}
+set => dict: 0.016444282, trie: 1.928200929, judy: 0.079096568
+get => dict: 0.018696934, trie: 0.447669909, judy: 0.018319763
+````
+
+time\_test.jl
+````
+items 1000000 compare: JudyDict{Int, Int} vs. Dict{Int64, Int64}
+set => dict: 0.39570294, judy: 0.206779173
+get => dict: 0.232123599, judy: 0.236621416
+
+items 1000000 compare: JudyDict{String, Int} vs. Dict{String, Int64} vs. Trie{Int64}
+not comparing Trie for so many entries
+set => dict: 1.486466472, trie: NaN, judy: 0.647465437
+get => dict: 0.817610285, trie: NaN, judy: 0.352016509
+
+items 1000000 compare: JudyDict{String, ASCIIString} vs. Dict{String, ASCIIString} vs. Trie{ASCIIString}
+not comparing Trie for so many entries
+set => dict: 1.454996025, trie: NaN, judy: 5.155431162
+get => dict: 0.714579466, trie: NaN, judy: 0.369600479
+
 ````
 
 These tests are just indicative and extensive testing hasn't been done yet.
-JudyDict seems better performing when the key is a String, but still very close to Trie.
+JudyDict seems better performing when the key is a String.
 
-JudyDict with Julia objects as value type actually also hold the object references in an internal Dict to prevent them being gc'd. They could be faster if it could somehow indicate certain object\_ids to gc as protected, but unfortunately there doesn't seem to be a way to do that.
+JudyDict with Julia objects as value type actually also hold the object references in an internal Dict to prevent them being gc'd. It thus takes a performance penalty during set operations. It could be faster if it could somehow indicate certain object\_ids to gc as protected, but unfortunately there doesn't seem to be a way to do that.
 
 
 
