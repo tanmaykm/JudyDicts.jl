@@ -11,7 +11,7 @@ function test_juHS()
     for i in indices
         ret_ptr = ju_set(ja, i[1], i[2])
         @test C_NULL != ret_ptr
-        @test i[2] == unsafe_ref(ret_ptr)
+        @test i[2] == unsafe_load(ret_ptr)
     end
 
     for i in indices
@@ -84,7 +84,7 @@ function test_juSL()
     for i in indices
         ret_ptr = ju_set(ja, i[1], i[2])
         @test C_NULL != ret_ptr
-        @test i[2] == unsafe_ref(ret_ptr)
+        @test i[2] == unsafe_load(ret_ptr)
     end
 
     for i in indices
@@ -193,7 +193,7 @@ function test_juL()
     for i in indices
         ret_ptr = ju_set(ja, i[1], i[2])
         @test C_NULL != ret_ptr
-        @test i[2] == unsafe_ref(ret_ptr)
+        @test i[2] == unsafe_load(ret_ptr)
     end
 
     for i in indices

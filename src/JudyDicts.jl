@@ -105,14 +105,14 @@ function ju_set{V}(arr::JudyDict{Int,V}, idx::Int, val::V)
     ret::Ptr{Uint} = ccall((:JudyLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Uint, Ptr{Void}), arr.pjarr, convert(Uint, idx), C_NULL)
     if (ret != C_NULL)
         arr.gc_store[val] = val
-        unsafe_assign(ret, convert(Uint, pointer_from_objref(val)))
+        unsafe_store!(ret, convert(Uint, pointer_from_objref(val)))
     end
     ret
 end
 function ju_set(arr::JudyDict{Int, Int}, idx::Int, val::Int)
     ret::Ptr{Uint} = ccall((:JudyLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Uint, Ptr{Void}), arr.pjarr, convert(Uint, idx), C_NULL)
     if (ret != C_NULL)
-        unsafe_assign(ret, convert(Uint, val))
+        unsafe_store!(ret, convert(Uint, val))
     end
     ret
 end
@@ -123,7 +123,7 @@ function ju_set{V}(arr::JudyDict{String, V}, idx::String, val::V)
     ret::Ptr{Uint} = ccall((:JudySLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Ptr{Void}), arr.pjarr, idx, C_NULL)
     if (ret != C_NULL)
         arr.gc_store[val] = val
-        unsafe_assign(ret, convert(Uint, pointer_from_objref(val)))
+        unsafe_store!(ret, convert(Uint, pointer_from_objref(val)))
     end
     ret
 end
@@ -132,7 +132,7 @@ function ju_set(arr::JudyDict{String, Int}, idx::String, val::Int)
     @assert length(idx) < MAX_STR_IDX_LEN
     ret::Ptr{Uint} = ccall((:JudySLIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Ptr{Void}), arr.pjarr, bytestring(idx), C_NULL)
     if (ret != C_NULL)
-        unsafe_assign(ret, convert(Uint, val))
+        unsafe_store!(ret, convert(Uint, val))
     end
     ret
 end
@@ -140,7 +140,7 @@ end
 function ju_set(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8}, val::Int)
     ret::Ptr{Uint} = ccall((:JudyHSIns, _judylib), Ptr{Uint}, (Ptr{Ptr{Void}}, Ptr{Uint8}, Uint, Ptr{Void}), arr.pjarr, idx, convert(Uint, length(idx)), C_NULL)
     if (ret != C_NULL)
-        unsafe_assign(ret, convert(Uint, val))
+        unsafe_store!(ret, convert(Uint, val))
     end
     ret
 end
@@ -155,13 +155,13 @@ ju_get(arr::JudyDict{Int, Bool}, idx::Int) = ccall((:Judy1Test, _judylib), Int32
 ## the pointer is valid till the next call to a judy method.
 function ju_get(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8})
     ret::Ptr{Uint} = ccall((:JudyHSGet, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Uint, Ptr{Void}), arr.pjarr[1], idx, convert(Uint, length(idx)), C_NULL)
-    ((ret != C_NULL) ? unsafe_ref(ret) : Nothing, ret)
+    ((ret != C_NULL) ? unsafe_load(ret) : Nothing, ret)
 end
 
 macro _ju_get(arr, idx, itype, fn)
     quote
         local ret::Ptr{Uint} = ccall(($(fn), _judylib), Ptr{Uint}, (Ptr{Void}, $(itype), Ptr{Void}), $(arr).pjarr[1], $(idx), C_NULL)
-        ((ret != C_NULL) ? unsafe_ref(ret) : Nothing, ret)
+        ((ret != C_NULL) ? unsafe_load(ret) : Nothing, ret)
     end
 end
 
@@ -232,13 +232,13 @@ end
 ## return tuple (value at index, pointer to value, index_pos) on success or (undefined, C_NULL, undefined) on not found/error
 function ju_by_count(arr::JudyDict{Int,Int}, n::Int)
     ret::Ptr{Uint} = ccall((:JudyLByCount, _judylib), Ptr{Uint}, (Ptr{Void}, Uint, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], convert(Uint, n), arr.nth_idx, C_NULL)
-    ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
+    ret_val::Uint = (ret != C_NULL) ? unsafe_load(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
 function ju_by_count{V}(arr::JudyDict{Int,V}, n::Int)
     ret::Ptr{Uint} = ccall((:JudyLByCount, _judylib), Ptr{Uint}, (Ptr{Void}, Uint, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], convert(Uint, n), arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
+        ret_val::Uint = unsafe_load(ret)
         (unsafe_pointer_to_objref(convert(Ptr{Void}, ret_val)), ret, arr.nth_idx[1])
     else
         (Nothing, C_NULL, arr.nth_idx[1])
@@ -280,14 +280,14 @@ end
 function ju_first(arr::JudyDict{Int, Int}, idx::Int=0)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
-    ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
+    ret_val::Uint = (ret != C_NULL) ? unsafe_load(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
 function ju_first{V}(arr::JudyDict{Int, V}, idx::Int=0)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, arr.nth_idx[1])
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, arr.nth_idx[1])
     end
     (C_NULL, C_NULL, arr.nth_idx[1])
 end
@@ -298,7 +298,7 @@ function ju_first(arr::JudyDict{String, Int}, idx::String="")
     ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_ref(ret), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_load(ret), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (uint(0), C_NULL, "")
 end
@@ -308,7 +308,7 @@ function ju_first{V}(arr::JudyDict{String, V}, idx::String="")
     ret::Ptr{Uint} = ccall((:JudySLFirst, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (Nothing, C_NULL, "")
 end
@@ -331,13 +331,13 @@ function ju_next{V}(arr::JudyDict{Int, V}, idx::Int)
 end
 function ju_next(arr::JudyDict{Int, Int})
     ret::Ptr{Uint} = ccall((:JudyLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
-    ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
+    ret_val::Uint = (ret != C_NULL) ? unsafe_load(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
 function ju_next{V}(arr::JudyDict{Int, V})
     ret::Ptr{Uint} = ccall((:JudyLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, arr.nth_idx[1])
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, arr.nth_idx[1])
     end
     (C_NULL, C_NULL, arr.nth_idx[1])
 end
@@ -351,7 +351,7 @@ function ju_next(arr::JudyDict{String, Int})
     ret::Ptr{Uint} = ccall((:JudySLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_ref(ret), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_load(ret), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (uint(0), C_NULL, "")
 end
@@ -359,7 +359,7 @@ function ju_next{V}(arr::JudyDict{String, V})
     ret::Ptr{Uint} = ccall((:JudySLNext, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (Nothing, C_NULL, "")
 end
@@ -374,14 +374,14 @@ end
 function ju_last(arr::JudyDict{Int, Int}, idx::Int=-1)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
-    ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
+    ret_val::Uint = (ret != C_NULL) ? unsafe_load(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
 function ju_last{V}(arr::JudyDict{Int, V}, idx::Int=-1)
     arr.nth_idx[1] = convert(Uint, idx)
     ret::Ptr{Uint} = ccall((:JudyLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, arr.nth_idx[1])
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, arr.nth_idx[1])
     end
     return (C_NULL, C_NULL, arr.nth_idx[1])
 end
@@ -391,7 +391,7 @@ function ju_last(arr::JudyDict{String, Int})
     arr.nth_idx[MAX_STR_IDX_LEN-1] = 0
     ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
+        ret_val::Uint = unsafe_load(ret)
         len::Uint = @_strlen arr.nth_idx
         return (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
     end
@@ -402,7 +402,7 @@ function ju_last(arr::JudyDict{String, Int}, idx::String)
     @_strcpy arr.nth_idx bytestring(idx)
     ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
+        ret_val::Uint = unsafe_load(ret)
         len::Uint = @_strlen arr.nth_idx
         return (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
     end
@@ -414,7 +414,7 @@ function ju_last{V}(arr::JudyDict{String, V})
     ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (Nothing, C_NULL, "")
 end
@@ -424,7 +424,7 @@ function ju_last{V}(arr::JudyDict{String, V}, idx::String)
     ret::Ptr{Uint} = ccall((:JudySLLast, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (Nothing, C_NULL, "")
 end
@@ -448,13 +448,13 @@ function ju_prev{V}(arr::JudyDict{Int, V}, idx::Int)
 end
 function ju_prev(arr::JudyDict{Int, Int})
     ret::Ptr{Uint} = ccall((:JudyLPrev, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
-    ret_val::Uint = (ret != C_NULL) ? unsafe_ref(ret) : C_NULL
+    ret_val::Uint = (ret != C_NULL) ? unsafe_load(ret) : C_NULL
     return (ret_val, ret, arr.nth_idx[1])
 end
 function ju_prev{V}(arr::JudyDict{Int, V})
     ret::Ptr{Uint} = ccall((:JudyLPrev, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, arr.nth_idx[1])
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, arr.nth_idx[1])
     end
     return (C_NULL, C_NULL, arr.nth_idx[1])
 end
@@ -467,7 +467,7 @@ end
 function ju_prev(arr::JudyDict{String, Int})
     ret::Ptr{Uint} = ccall((:JudySLPrev, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
-        ret_val::Uint = unsafe_ref(ret)
+        ret_val::Uint = unsafe_load(ret)
         len::Uint = @_strlen arr.nth_idx
         return (ret_val, ret, ASCIIString(arr.nth_idx[1:len]))
     end
@@ -477,7 +477,7 @@ function ju_prev{V}(arr::JudyDict{String, V})
     ret::Ptr{Uint} = ccall((:JudySLPrev, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint}, Ptr{Void}), arr.pjarr[1], arr.nth_idx, C_NULL)
     if(ret != C_NULL)
         len::Uint = @_strlen arr.nth_idx
-        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_ref(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
+        return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
     (Nothing, C_NULL, "")
 end
