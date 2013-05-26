@@ -17,4 +17,4 @@ script:
     - julia -e "Pkg.init()"
     - mkdir -p ~/.julia/JudyDicts
     - cp -R ./* ~/.julia/JudyDicts/
-    - julia ~/.julia/URLParse/test/judy_tests.jl
+    - julia ~/.julia/JudyDicts/test/judy_tests.jl
