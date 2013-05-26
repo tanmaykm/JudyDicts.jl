@@ -1,0 +1,20 @@
+language: cpp
+compiler: 
+    - clang
+notifications:
+    email: true
+before_install:
+    - sudo add-apt-repository ppa:staticfloat/julia-deps -y
+    - sudo add-apt-repository ppa:staticfloat/julianightlies -y
+    - sudo apt-get update -qq -y
+    - sudo apt-get install libpcre3-dev julia -y
+    - curl -L -O "http://downloads.sourceforge.net/project/judy/judy/Judy-1.0.5/Judy-1.0.5.tar.gz"
+    - tar -xzvf Judy-1.0.5.tar.gz
+    - cd judy-1.0.5 && ./configure && make && sudo make install && cd ..
+    - git config --global user.name "Travis User"
+    - git config --global user.email "travis@example.net"
+script:
+    - julia -e "Pkg.init()"
+    - mkdir -p ~/.julia/JudyDicts
+    - cp -R ./* ~/.julia/JudyDicts/
+    - julia ~/.julia/URLParse/test/judy_tests.jl
