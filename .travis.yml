@@ -11,6 +11,7 @@ before_install:
     - curl -L -O "http://downloads.sourceforge.net/project/judy/judy/Judy-1.0.5/Judy-1.0.5.tar.gz"
     - tar -xzvf Judy-1.0.5.tar.gz
     - cd judy-1.0.5 && ./configure && make && sudo make install && cd ..
+    - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - git config --global user.name "Travis User"
     - git config --global user.email "travis@example.net"
 script:
