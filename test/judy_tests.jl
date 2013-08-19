@@ -27,8 +27,13 @@ function test_juHS()
     @test 1 == ju_unset(ja, (indices[1])[1])
     ja[(indices[1])[1]] = 2 * (indices[1])[2]
     @test (2 * ((indices[1])[2])) == ja[(indices[1])[1]]
-    ja[(indices[1])[1]] = Nothing
-    @test Nothing == ja[(indices[1])[1]]
+    ja[(indices[1])[1]] = nothing
+    @test nothing == ja[(indices[1])[1]]
+
+    ja[(indices[1])[1]] = (indices[1])[2]
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    delete!(ja, (indices[1])[1])
+    @test nothing == ja[(indices[1])[1]]
 
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
 end
@@ -47,7 +52,7 @@ function test_juSO()
         @test i[2] == ja[i[1]]
     end
 
-    ret_tuple = (Nothing, C_NULL, 0)
+    ret_tuple = (nothing, C_NULL, 0)
     for i in 1:length(indices)
         ret_tuple = (i == 1) ? ju_first(ja) : ju_next(ja)
         @test ((indices[i])[2] == ret_tuple[1]) && (C_NULL != ret_tuple[2]) && ((indices[i])[1] == ret_tuple[3])
@@ -72,6 +77,11 @@ function test_juSO()
 
     @test 1 == ju_unset(ja, (indices[1])[1])
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+
+    ja[(indices[1])[1]] = (indices[1])[2]
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    delete!(ja, (indices[1])[1])
+    @test nothing == ja[(indices[1])[1]]
 end
 
 
@@ -118,6 +128,11 @@ function test_juSL()
 
     @test 1 == ju_unset(ja, (indices[1])[1])
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+
+    ja[(indices[1])[1]] = (indices[1])[2]
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    delete!(ja, (indices[1])[1])
+    @test nothing == ja[(indices[1])[1]]
 end
 
 function test_juLO()
@@ -179,6 +194,11 @@ function test_juLO()
 
     @test 1 == ju_unset(ja, (indices[1])[1])
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+
+    ja[(indices[1])[1]] = (indices[1])[2]
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    delete!(ja, (indices[1])[1])
+    @test nothing == ja[(indices[1])[1]]
 end
 
 
@@ -245,6 +265,11 @@ function test_juL()
 
     @test 1 == ju_unset(ja, (indices[1])[1])
     @test C_NULL == (ju_get(ja, (indices[1])[1]))[2]
+
+    ja[(indices[1])[1]] = (indices[1])[2]
+    @test (indices[1])[2] == ja[(indices[1])[1]]
+    delete!(ja, (indices[1])[1])
+    @test nothing == ja[(indices[1])[1]]
 end
 
 function test_ju1()
@@ -303,6 +328,11 @@ function test_ju1()
 
     @test 1 == ju_unset(ja, indices[1])
     @test 1 != ju_get(ja, indices[1])
+
+    ja[indices[1]] = true
+    @test true == ja[indices[1]]
+    delete!(ja, indices[1])
+    @test false == ja[indices[1]]
 end
 
 test_juHS()

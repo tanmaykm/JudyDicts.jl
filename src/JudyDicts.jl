@@ -2,6 +2,7 @@ module JudyDicts
 
 import  Base.getindex,
         Base.setindex!,
+        Base.delete!,
         Base.show,
         Base.length,
         Base.start,
@@ -64,24 +65,30 @@ ju_mem_used{V}(arr::JudyDict{Int,V}) = ccall((:JudyLMemUsed, _judylib), Uint, (P
 
 macro _unset(arr, val, idx)
     quote
-        (Nothing == val) ? (ju_unset(arr, idx); Nothing) : error("Unknown value type: $(typeof(val))")
+        (nothing == val) ? (ju_unset(arr, idx); nothing) : error("Unknown value type: $(typeof(val))")
     end
 end
 
+delete!(arr::JudyDict{Int, Bool}, idx::Int) = (ju_unset(arr, idx); nothing)
 setindex!(arr::JudyDict{Int, Bool}, isset::Bool, idx::Int) = isset ? ju_set(arr, idx) : ju_unset(arr, idx)
 getindex(arr::JudyDict{Int, Bool}, idx::Int) = (ju_get(arr, idx) == 1)
 
+#delete!(arr::JudyDict{Int, Int}, idx::Int) = (ju_unset(arr, idx); nothing)
 setindex!(arr::JudyDict{Int, Int}, val::Any, idx::Int) = @_unset arr val idx
 setindex!(arr::JudyDict{Int, Int}, val::Int, idx::Int) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
+
+delete!{V}(arr::JudyDict{Int,V}, idx::Int) = (ju_unset(arr, idx); nothing)
 setindex!{V}(arr::JudyDict{Int,V}, val::V, idx::Int) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 getindex{V}(arr::JudyDict{Int,V}, idx::Int) = ju_get(arr, idx)[1] 
 
 
+delete!{V}(arr::JudyDict{String, V}, idx::String) = (ju_unset(arr, idx); nothing)
 setindex!(arr::JudyDict{String, Int}, val::Any, idx::String) = @_unset arr val idx
 setindex!(arr::JudyDict{String, Int}, val::Int, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 setindex!{V}(arr::JudyDict{String, V}, val::V, idx::String) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 getindex{V}(arr::JudyDict{String, V}, idx::String) = ju_get(arr, idx)[1] 
 
+delete!(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8}) = (ju_unset(arr, idx); nothing)
 setindex!(arr::JudyDict{Array{Uint8}, Int}, val::Any, idx::Array{Uint8}) = @_unset arr val idx
 setindex!(arr::JudyDict{Array{Uint8}, Int}, val::Integer, idx::Array{Uint8}) = (C_NULL != ju_set(arr, idx, val)) ? val : error("Error setting value")
 getindex(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8}) = ju_get(arr, idx)[1] 
@@ -155,13 +162,13 @@ ju_get(arr::JudyDict{Int, Bool}, idx::Int) = ccall((:Judy1Test, _judylib), Int32
 ## the pointer is valid till the next call to a judy method.
 function ju_get(arr::JudyDict{Array{Uint8}, Int}, idx::Array{Uint8})
     ret::Ptr{Uint} = ccall((:JudyHSGet, _judylib), Ptr{Uint}, (Ptr{Void}, Ptr{Uint8}, Uint, Ptr{Void}), arr.pjarr[1], idx, convert(Uint, length(idx)), C_NULL)
-    ((ret != C_NULL) ? unsafe_load(ret) : Nothing, ret)
+    ((ret != C_NULL) ? unsafe_load(ret) : nothing, ret)
 end
 
 macro _ju_get(arr, idx, itype, fn)
     quote
         local ret::Ptr{Uint} = ccall(($(fn), _judylib), Ptr{Uint}, (Ptr{Void}, $(itype), Ptr{Void}), $(arr).pjarr[1], $(idx), C_NULL)
-        ((ret != C_NULL) ? unsafe_load(ret) : Nothing, ret)
+        ((ret != C_NULL) ? unsafe_load(ret) : nothing, ret)
     end
 end
 
@@ -169,11 +176,11 @@ ju_get(arr::JudyDict{Int, Int}, idx::Int) = @_ju_get arr convert(Uint, idx) Uint
 ju_get(arr::JudyDict{String, Int}, idx::String) = @_ju_get arr bytestring(idx) Ptr{Uint8} :JudySLGet
 function ju_get{V}(arr::JudyDict{Int,V}, idx::Int)
     ret_tuple = @_ju_get arr convert(Uint, idx) Uint :JudyLGet
-    ((ret_tuple[2] != C_NULL) ? unsafe_pointer_to_objref(convert(Ptr{Void}, ret_tuple[1])) : Nothing, ret_tuple[2])
+    ((ret_tuple[2] != C_NULL) ? unsafe_pointer_to_objref(convert(Ptr{Void}, ret_tuple[1])) : nothing, ret_tuple[2])
 end
 function ju_get{V}(arr::JudyDict{String,V}, idx::String)
     ret_tuple = @_ju_get arr bytestring(idx) Ptr{Uint8} :JudySLGet
-    ((ret_tuple[2] != C_NULL) ? unsafe_pointer_to_objref(convert(Ptr{Void}, ret_tuple[1])) : Nothing, ret_tuple[2])
+    ((ret_tuple[2] != C_NULL) ? unsafe_pointer_to_objref(convert(Ptr{Void}, ret_tuple[1])) : nothing, ret_tuple[2])
 end
 
 
@@ -241,7 +248,7 @@ function ju_by_count{V}(arr::JudyDict{Int,V}, n::Int)
         ret_val::Uint = unsafe_load(ret)
         (unsafe_pointer_to_objref(convert(Ptr{Void}, ret_val)), ret, arr.nth_idx[1])
     else
-        (Nothing, C_NULL, arr.nth_idx[1])
+        (nothing, C_NULL, arr.nth_idx[1])
     end
 end
 
@@ -260,15 +267,15 @@ end
 ## iterators. return tuple of (value, index)
 start(arr::JudyDict{Int, Bool}) = ju_first(arr)
 done(arr::JudyDict{Int, Bool}, state) = (0 == state[1])
-next(arr::JudyDict{Int, Bool}, state) = done(arr, state) ? (Nothing, state) : ((true, state[2]), ju_next(arr))
+next(arr::JudyDict{Int, Bool}, state) = done(arr, state) ? (nothing, state) : ((true, state[2]), ju_next(arr))
 
 start{V}(arr::JudyDict{Int, V}) = ju_first(arr)
 done{V}(arr::JudyDict{Int, V}, state) = (C_NULL == state[2])
-next{V}(arr::JudyDict{Int, V}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
+next{V}(arr::JudyDict{Int, V}, state) = done(arr, state) ? (nothing, state) : ((state[1], state[3]), ju_next(arr))
 
 start{V}(arr::JudyDict{String, V}) = ju_first(arr)
 done{V}(arr::JudyDict{String, V}, state) = (C_NULL == state[2])
-next{V}(arr::JudyDict{String, V}, state) = done(arr, state) ? (Nothing, state) : ((state[1], state[3]), ju_next(arr))
+next{V}(arr::JudyDict{String, V}, state) = done(arr, state) ? (nothing, state) : ((state[1], state[3]), ju_next(arr))
 
 ## The base iteration methods return a pointer to the value as well
 function ju_first(arr::JudyDict{Int, Bool}, idx::Int=0)
@@ -310,7 +317,7 @@ function ju_first{V}(arr::JudyDict{String, V}, idx::String="")
         len::Uint = @_strlen arr.nth_idx
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
-    (Nothing, C_NULL, "")
+    (nothing, C_NULL, "")
 end
 
 
@@ -361,7 +368,7 @@ function ju_next{V}(arr::JudyDict{String, V})
         len::Uint = @_strlen arr.nth_idx
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
-    (Nothing, C_NULL, "")
+    (nothing, C_NULL, "")
 end
 
 
@@ -416,7 +423,7 @@ function ju_last{V}(arr::JudyDict{String, V})
         len::Uint = @_strlen arr.nth_idx
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
-    (Nothing, C_NULL, "")
+    (nothing, C_NULL, "")
 end
 function ju_last{V}(arr::JudyDict{String, V}, idx::String)
     @assert length(idx) < MAX_STR_IDX_LEN
@@ -426,7 +433,7 @@ function ju_last{V}(arr::JudyDict{String, V}, idx::String)
         len::Uint = @_strlen arr.nth_idx
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
-    (Nothing, C_NULL, "")
+    (nothing, C_NULL, "")
 end
 
 
@@ -479,7 +486,7 @@ function ju_prev{V}(arr::JudyDict{String, V})
         len::Uint = @_strlen arr.nth_idx
         return (unsafe_pointer_to_objref(convert(Ptr{Void}, unsafe_load(ret))), ret, ASCIIString(arr.nth_idx[1:len]))
     end
-    (Nothing, C_NULL, "")
+    (nothing, C_NULL, "")
 end
 
 
