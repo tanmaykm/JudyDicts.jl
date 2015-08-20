@@ -2,7 +2,7 @@
 
 This is a wrapper over the Judy C library at [http://judy.sourceforge.net/](http://judy.sourceforge.net/), and also provides array like syntax for ease of use.
 
-[![Build Status](https://travis-ci.org/tanmaykm/JudyDicts.jl.png)](https://travis-ci.org/tanmaykm/JudyDicts.jl)
+Note: This package is deprecated since Julia 0.4.
 
 Speed comparison (output of test/time\_test.jl):
 -----------------------------------------------
